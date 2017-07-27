@@ -4,6 +4,7 @@ const St = imports.gi.St;
 const Clutter = imports.gi.Clutter;
 const Lang = imports.lang;
 const Mainloop = imports.mainloop;
+const Sound = imports.ui.soundManager;
 
 
 
@@ -133,6 +134,7 @@ Sharkle.prototype = {
 		this.width = 200;
 		this.height = 200;
 		this.wavingHello = false;
+		this.soundManager = new Sound.SoundManager();
 		
 		this.metadata = metadata;
 		Desklet.Desklet.prototype._init.call(this, metadata, desklet_id);
@@ -175,14 +177,34 @@ Sharkle.prototype = {
 		
 		this.mainContent.add_actor(this.wordBubble);
 	},
+	
+	randomHex: function(length) {
+		var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		var text = "";
+		for(var i=0; i<length; i++)
+		{
+			text += possible.charAt(Math.floor(Math.random() * possible.length));
+		}
+		return text;
+	},
 
 	loadImage: function(filePath) {
 		let path = "file://"+this.metadata.path+"/"+filePath;
-		global.log(path);
 		let image = St.TextureCache.get_default().load_uri_async(path, -1, -1);
 		image.path = path;
-		image.show_on_set_parent = true;
 		return image;
+	},
+	
+	playSound: function(filePath) {
+		let path = this.metadata.path+"/"+filePath;
+		var soundID = this.randomHex(12);
+		this.soundManager.playSoundFile(soundID, path);
+		return soundID;
+	},
+	
+	playRandomGreeting: function() {
+		var greetingNum = Math.floor(Math.random()*8);
+		return this.playSound("audio/greeting_"+greetingNum+".wav");
 	},
 	
 	on_desklet_clicked: function(event){
@@ -191,6 +213,7 @@ Sharkle.prototype = {
 			this.wavingHello = true;
 			this.shark.setAnimation(this.helloAnimation);
 			this.wordBubble.setAnimation(this.bubbleAnimation);
+			this.playRandomGreeting();
 			var _this = this;
 			Mainloop.timeout_add(1600, function(){
 				_this.shark.setAnimation(_this.idleAnimation);
