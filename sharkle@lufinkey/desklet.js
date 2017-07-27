@@ -26,7 +26,6 @@ Animation.prototype = {
 
 
 
-
 function AnimationPlayer()
 {
 	this._init();
@@ -122,7 +121,6 @@ function createSprite()
 
 
 
-
 function Sharkle(metadata, desklet_id)
 {
 	this._init(metadata, desklet_id);
@@ -134,6 +132,7 @@ Sharkle.prototype = {
 	{
 		this.width = 200;
 		this.height = 200;
+		this.wavingHello = false;
 		
 		this.metadata = metadata;
 		Desklet.Desklet.prototype._init.call(this, metadata, desklet_id);
@@ -149,6 +148,16 @@ Sharkle.prototype = {
 		{
 			this.idleAnimation.addImage(this.loadImage("images/white/idle_"+i+".png"));
 		}
+		this.helloAnimation = new Animation(10);
+		for(var i=0; i<=3; i++)
+		{
+			this.helloAnimation.addImage(this.loadImage("images/white/hello_"+i+".png"));
+		}
+		this.bubbleAnimation = new Animation(2);
+		for(var i=0; i<=1; i++)
+		{
+			this.bubbleAnimation.addImage(this.loadImage("images/white/bubble_"+i+".png"));
+		}
 		
 
 		// Setup the shark
@@ -159,7 +168,7 @@ Sharkle.prototype = {
 		this.mainContent.add_actor(this.shark);
 		
 		//Setup the word bubble
-		this.wordBubble = new St.Bin();
+		this.wordBubble = createSprite();
 		this.wordBubble.set_size(this.width, this.height);
 		this.wordBubble.anchor_x = (this.width*0.63);
 		this.wordBubble.anchor_y = (this.height*0.63);
@@ -175,7 +184,23 @@ Sharkle.prototype = {
 		image.show_on_set_parent = true;
 		return image;
 	},
+	
+	on_desklet_clicked: function(event){
+		if(!this.wavingHello)
+		{
+			this.wavingHello = true;
+			this.shark.setAnimation(this.helloAnimation);
+			this.wordBubble.setAnimation(this.bubbleAnimation);
+			var _this = this;
+			Mainloop.timeout_add(1600, function(){
+				_this.shark.setAnimation(_this.idleAnimation);
+				_this.wordBubble.setAnimation(null);
+				_this.wavingHello = false;
+			});
+		}
+	},
 }
+
 
 
 function main(metadata, desklet_id)
