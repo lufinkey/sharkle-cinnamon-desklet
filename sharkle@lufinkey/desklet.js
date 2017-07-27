@@ -37,6 +37,7 @@ AnimationPlayer.prototype = {
 		this.animation = null;
 		this.frame = 0;
 		this.onUpdate = null;
+		this.onFinish = null;
 	},
 	
 	setAnimation: function(animation)
@@ -73,18 +74,52 @@ AnimationPlayer.prototype = {
 	
 	_update_loop: function()
 	{
+		var finished = false;
 		this.frame++;
 		if(this.frame >= this.animation.images.length)
 		{
 			this.frame = 0;
 		}
 		this.loop_id = Mainloop.timeout_add(1000.0/this.animation.fps, Lang.bind(this, this._update_loop));
+		if(finished && this.onFinish!=null)
+		{
+			this.onFinish();
+		}
 		if(this.onUpdate!=null)
 		{
 			this.onUpdate();
 		}
 	},
 }
+
+
+
+function createSprite()
+{
+	var sprite = new St.Bin();
+	
+	var lastImage = null;
+	var animationPlayer = new AnimationPlayer();
+	animationPlayer.onUpdate = function(){
+		if(lastImage!=null)
+		{
+			sprite.remove_actor(lastImage);
+		}
+		lastImage = animationPlayer.getCurrentImage();
+		if(lastImage!=null)
+		{
+			sprite.add_actor(lastImage);
+		}
+	};
+	
+	sprite.setAnimation = function(animation){
+		animationPlayer.setAnimation(animation);
+	};
+	sprite.animationPlayer = animationPlayer;
+	
+	return sprite;
+}
+
 
 
 
@@ -109,35 +144,17 @@ Sharkle.prototype = {
 		this.setContent(this.mainContent);
 		
 		//load animations
-		this.idleAnimation = new Animation(8);
+		this.idleAnimation = new Animation(10);
 		for(var i=0; i<=7; i++)
 		{
 			this.idleAnimation.addImage(this.loadImage("images/white/idle_"+i+".png"));
 		}
 		
-		
 
 		// Setup the shark
-		var shark = new St.Bin();
-		shark.set_size(this.width, this.height);
-		
-		var lastSharkActor = null;
-		var sharkPlayer = new AnimationPlayer();
-		sharkPlayer.onUpdate = function(){
-			if(lastSharkActor!=null)
-			{
-				shark.remove_actor(lastSharkActor);
-			}
-			lastSharkActor = sharkPlayer.getCurrentImage();
-			if(lastSharkActor!=null)
-			{
-				shark.add_actor(lastSharkActor);
-			}
-		};
-		sharkPlayer.setAnimation(this.idleAnimation);
-		
-		this.shark = shark;
-		this.sharkPlayer = sharkPlayer;
+		this.shark = createSprite();
+		this.shark.set_size(this.width, this.height);
+		this.shark.setAnimation(this.idleAnimation);
 		
 		this.mainContent.add_actor(this.shark);
 		
