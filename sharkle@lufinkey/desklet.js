@@ -139,6 +139,7 @@ Sharkle.prototype = {
 		this.height = 200;
 		this.wavingHello = false;
 		this.soundManager = new Sound.SoundManager();
+		this.lastGreetingNum = -1;
 		
 		// Setup settings
 		try
@@ -233,7 +234,13 @@ Sharkle.prototype = {
 	},
 	
 	playRandomGreeting: function() {
-		var greetingNum = Math.floor(Math.random()*8);
+		var greetingNum = -1;
+		do
+		{
+			greetingNum = Math.floor(Math.random()*8);
+		}
+		while(greetingNum == this.lastGreetingNum);
+		this.lastGreetingNum = greetingNum;
 		return this.playSound("audio/greeting_"+greetingNum+".wav");
 	},
 	
