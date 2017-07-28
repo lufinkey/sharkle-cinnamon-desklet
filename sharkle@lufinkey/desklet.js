@@ -1,5 +1,6 @@
 
 const Desklet = imports.ui.desklet;
+const Settings = imports.ui.settings;
 const St = imports.gi.St;
 const Clutter = imports.gi.Clutter;
 const Lang = imports.lang;
@@ -131,13 +132,25 @@ Sharkle.prototype = {
 
 	_init: function(metadata, desklet_id)
 	{
+		Desklet.Desklet.prototype._init.call(this, metadata, desklet_id);
+		this.metadata = metadata;
+		
 		this.width = 200;
 		this.height = 200;
 		this.wavingHello = false;
 		this.soundManager = new Sound.SoundManager();
 		
-		this.metadata = metadata;
-		Desklet.Desklet.prototype._init.call(this, metadata, desklet_id);
+		// Setup settings
+		try
+		{
+			this.settings = new Settings.DeskletSettings(this, this.metadata["uuid"], this.instance_id);
+			this.settings.bind("color", "color", this.on_setting_changed);
+		}
+		catch(e)
+		{
+			global.logError(e);
+		}
+		
 		
 		// Setup main content
 		this.mainContent = new Clutter.Group();
@@ -145,27 +158,44 @@ Sharkle.prototype = {
 		this.setContent(this.mainContent);
 		
 		//load animations
-		this.idleAnimation = new Animation(10);
+		this.animStash = {
+			"white":{
+				idle:null,
+				hello:null,
+				bubble:null,
+			},
+			"black":{
+				idle:null,
+				hello:null,
+				bubble:null,
+			},
+		};
+		this.animStash.white.idle = new Animation(10);
+		this.animStash.black.idle = new Animation(10);
 		for(var i=0; i<=7; i++)
 		{
-			this.idleAnimation.addImage(this.loadImage("images/white/idle_"+i+".png"));
+			this.animStash.white.idle.addImage(this.loadImage("images/white/idle_"+i+".png"));
+			this.animStash.black.idle.addImage(this.loadImage("images/black/idle_"+i+".png"));
 		}
-		this.helloAnimation = new Animation(10);
+		this.animStash.white.hello = new Animation(10);
+		this.animStash.black.hello = new Animation(10);
 		for(var i=0; i<=3; i++)
 		{
-			this.helloAnimation.addImage(this.loadImage("images/white/hello_"+i+".png"));
+			this.animStash.white.hello.addImage(this.loadImage("images/white/hello_"+i+".png"));
+			this.animStash.black.hello.addImage(this.loadImage("images/black/hello_"+i+".png"));
 		}
-		this.bubbleAnimation = new Animation(2);
+		this.animStash.white.bubble = new Animation(2);
+		this.animStash.black.bubble = new Animation(2);
 		for(var i=0; i<=1; i++)
 		{
-			this.bubbleAnimation.addImage(this.loadImage("images/white/bubble_"+i+".png"));
+			this.animStash.white.bubble.addImage(this.loadImage("images/white/bubble_"+i+".png"));
+			this.animStash.black.bubble.addImage(this.loadImage("images/black/bubble_"+i+".png"));
 		}
 		
-
 		// Setup the shark
 		this.shark = createSprite();
 		this.shark.set_size(this.width, this.height);
-		this.shark.setAnimation(this.idleAnimation);
+		this.shark.setAnimation(this.animStash[this.color].idle);
 		
 		this.mainContent.add_actor(this.shark);
 		
@@ -211,15 +241,28 @@ Sharkle.prototype = {
 		if(!this.wavingHello)
 		{
 			this.wavingHello = true;
-			this.shark.setAnimation(this.helloAnimation);
-			this.wordBubble.setAnimation(this.bubbleAnimation);
+			this.shark.setAnimation(this.animStash[this.color].hello);
+			this.wordBubble.setAnimation(this.animStash[this.color].bubble);
 			this.playRandomGreeting();
 			var _this = this;
 			Mainloop.timeout_add(1600, function(){
-				_this.shark.setAnimation(_this.idleAnimation);
+				_this.shark.setAnimation(_this.animStash[_this.color].idle);
 				_this.wordBubble.setAnimation(null);
 				_this.wavingHello = false;
 			});
+		}
+	},
+	
+	on_setting_changed: function(){
+		if(this.wavingHello)
+		{
+			this.shark.setAnimation(this.animStash[this.color].hello);
+			this.wordBubble.setAnimation(this.animStash[this.color].bubble);
+		}
+		else
+		{
+			this.shark.setAnimation(this.animStash[this.color].idle);
+			this.wordBubble.setAnimation(null);
 		}
 	},
 }
